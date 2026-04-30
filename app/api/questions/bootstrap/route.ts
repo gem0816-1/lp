@@ -9,6 +9,7 @@ export async function GET() {
     version: questionBankMeta.version,
     total: questionBankMeta.total,
     ratio: questionBankMeta.ratio,
+    provider: appConfig.questionBankProvider,
     coldStart: {
       syntheticPersona: appConfig.syntheticSimulationEnabled,
       humanGray: true

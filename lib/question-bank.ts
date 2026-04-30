@@ -1,5 +1,7 @@
 import { Question, QuestionOption } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { appConfig } from "@/lib/config";
+import { fetchExternalQuestionSeed } from "@/lib/external-question-bank";
 import {
   DimensionKey,
   DimensionVector,
@@ -105,6 +107,10 @@ export function generateQuestionBank(): QuestionSeed[] {
 }
 
 export async function ensureQuestionBank() {
+  if (appConfig.questionBankProvider === "external") {
+    return;
+  }
+
   const count = await prisma.question.count();
   if (count > 0) {
     return;
@@ -145,6 +151,67 @@ export async function getQuestionBankWithOptions() {
 }
 
 export type PersistedQuestion = Question & { options: QuestionOption[] };
+
+async function upsertQuestionSeed(seed: QuestionSeed) {
+  await prisma.$transaction(async (tx) => {
+    await tx.question.upsert({
+      where: { questionIndex: seed.questionIndex },
+      update: {
+        version: seed.version,
+        primaryAnchor: seed.primaryAnchor,
+        scenario: seed.scenario,
+        difficulty: seed.difficulty,
+        discriminationVector: seed.discriminationVector,
+        tags: seed.tags,
+        active: true
+      },
+      create: {
+        questionIndex: seed.questionIndex,
+        version: seed.version,
+        primaryAnchor: seed.primaryAnchor,
+        scenario: seed.scenario,
+        difficulty: seed.difficulty,
+        discriminationVector: seed.discriminationVector,
+        tags: seed.tags,
+        active: true
+      }
+    });
+
+    const question = await tx.question.findUnique({
+      where: { questionIndex: seed.questionIndex },
+      select: { id: true }
+    });
+
+    if (!question) {
+      throw new Error("题库写入失败：无法读取 upsert 后的题目");
+    }
+
+    await tx.questionOption.deleteMany({ where: { questionId: question.id } });
+    await tx.questionOption.createMany({
+      data: seed.options.map((option) => ({
+        questionId: question.id,
+        code: option.code,
+        text: option.text,
+        logic: option.logic,
+        vector: option.vector
+      }))
+    });
+  });
+}
+
+export async function getQuestionByIndexWithOptions(questionIndex: number): Promise<PersistedQuestion | null> {
+  if (appConfig.questionBankProvider === "external") {
+    const seed = await fetchExternalQuestionSeed(questionIndex);
+    await upsertQuestionSeed(seed);
+  } else {
+    await ensureQuestionBank();
+  }
+
+  return prisma.question.findUnique({
+    where: { questionIndex },
+    include: { options: true }
+  });
+}
 
 export const questionBankMeta = {
   version: VERSION,

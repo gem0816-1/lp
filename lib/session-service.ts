@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getQuestionBankWithOptions, PersistedQuestion, questionBankMeta } from "@/lib/question-bank";
+import { getQuestionByIndexWithOptions, PersistedQuestion, questionBankMeta } from "@/lib/question-bank";
 import {
   applyVector,
   buildResultSummary,
@@ -16,19 +16,21 @@ function parseJson<T>(value: Prisma.JsonValue): T {
 }
 
 async function getQuestionByIndex(questionIndex: number): Promise<PersistedQuestion | null> {
-  const bank = await getQuestionBankWithOptions();
-  return bank.find((question) => question.questionIndex === questionIndex) ?? null;
+  return getQuestionByIndexWithOptions(questionIndex);
 }
 
 export async function createAssessmentSession() {
-  await getQuestionBankWithOptions();
+  const firstQuestion = await getQuestionByIndexWithOptions(1);
+  if (!firstQuestion) {
+    throw new Error("题库初始化失败：无法获取第 1 题");
+  }
 
   const state = createInitialState();
 
   return prisma.assessmentSession.create({
     data: {
       status: "IN_PROGRESS",
-      questionVersion: questionBankMeta.version,
+      questionVersion: firstQuestion.version,
       initialState: state,
       currentState: state
     }
