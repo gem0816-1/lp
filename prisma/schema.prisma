@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReportUnlockStatus {
+  LOCKED
+  PREVIEW
+  UNLOCKED
+}
+
+enum CalibrationStage {
+  SYNTHETIC_PERSONA
+  HUMAN_GRAY
+}
+
+model User {
+  id           String              @id @default(cuid())
+  nickname     String?
+  email        String?             @unique
+  paid         Boolean             @default(false)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  sessions     AssessmentSession[]
+  reports      Report[]
+  paymentOrders PaymentOrder[]
+}
+
+model Question {
+  id                    String           @id @default(cuid())
+  version               String
+  questionIndex         Int              @unique
+  primaryAnchor         String
+  scenario              String           @db.Text
+  difficulty            Float
+  discriminationVector  Json
+  tags                  Json
+  active                Boolean          @default(true)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  options               QuestionOption[]
+}
+
+model QuestionOption {
+  id          String   @id @default(cuid())
+  questionId  String
+  code        String
+  text        String   @db.Text
+  vector      Json
+  logic       String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, code])
+}
+
+model AssessmentSession {
+  id                    String           @id @default(cuid())
+  userId                String?
+  status                SessionStatus    @default(DRAFT)
+  questionVersion       String
+  startedAt             DateTime         @default(now())
+  completedAt           DateTime?
+  currentQuestionIndex  Int              @default(1)
+  answeredCount         Int              @default(0)
+  initialState          Json
+  currentState          Json
+  cheatScore            Float            @default(0)
+  dimensionSummary      Json?
+  user                  User?            @relation(fields: [userId], references: [id])
+  responses             ResponseRecord[]
+  snapshots             StateSnapshot[]
+  report                Report?
+}
+
+model ResponseRecord {
+  id                 String            @id @default(cuid())
+  sessionId          String
+  questionId         String
+  selectedOptionCode String
+  infoScore          Float
+  cheatFlag          Boolean           @default(false)
+  createdAt          DateTime          @default(now())
+  session            AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model StateSnapshot {
+  id              String            @id @default(cuid())
+  sessionId       String
+  questionIndex   Int
+  preState        Json
+  postState       Json
+  appliedVector   Json
+  createdAt       DateTime          @default(now())
+  session         AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id            String             @id @default(cuid())
+  sessionId     String             @unique
+  userId        String?
+  previewText   String             @db.Text
+  fullJson      Json
+  unlockStatus  ReportUnlockStatus @default(LOCKED)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  session       AssessmentSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User?              @relation(fields: [userId], references: [id])
+}
+
+model PaymentOrder {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String?
+  amount      Int
+  status      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model CalibrationRun {
+  id                String           @id @default(cuid())
+  stage             CalibrationStage
+  runName           String
+  totalSimulations  Int
+  summaryJson       Json
+  createdAt         DateTime         @default(now())
+}
