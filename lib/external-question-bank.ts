@@ -1,5 +1,5 @@
-import { appConfig } from "@/lib/config";
-import type { QuestionSeed } from "@/lib/types";
+import { appConfig } from "./config";
+import type { QuestionSeed } from "./types";
 
 type ExternalQuestionResponse =
   | QuestionSeed

@@ -1,15 +1,15 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { getQuestionByIndexWithOptions, PersistedQuestion, questionBankMeta } from "@/lib/question-bank";
+import { prisma } from "./prisma";
+import { getQuestionByIndexWithOptions, PersistedQuestion, questionBankMeta } from "./question-bank";
 import {
   applyVector,
   buildResultSummary,
   createInitialState,
   getCheatScoreIncrement,
   infoScore
-} from "@/lib/measurement";
-import { createPreviewText, createReportPayload } from "@/lib/report";
-import { appConfig } from "@/lib/config";
+} from "./measurement";
+import { createPreviewText, createReportPayload } from "./report";
+import { appConfig } from "./config";
 
 function parseJson<T>(value: Prisma.JsonValue): T {
   return value as T;

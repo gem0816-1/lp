@@ -1,10 +1,10 @@
-import { appConfig } from "@/lib/config";
+import { appConfig } from "./config";
 import {
   DimensionState,
   DimensionVector,
   DiscriminationVector,
   ResultSummary
-} from "@/lib/types";
+} from "./types";
 
 export function createInitialState(): DimensionState {
   return { K: 0, S: 0, A: 0 };

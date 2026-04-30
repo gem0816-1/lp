@@ -1,5 +1,5 @@
-import { DimensionState, ResultSummary } from "@/lib/types";
-import { buildResultSummary } from "@/lib/measurement";
+import { DimensionState, ResultSummary } from "./types";
+import { buildResultSummary } from "./measurement";
 
 export function createReportPayload(scores: DimensionState, cheatScore: number) {
   const summary = buildResultSummary(scores, cheatScore);

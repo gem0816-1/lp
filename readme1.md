@@ -1,6 +1,6 @@
 # SPT 测评系统（交接与模块化文档）
 
-本仓库是 **SPT（K/S/A 三维）动态测评系统** 的首版工程骨架，技术栈固定为 **Next.js App Router + Prisma + MySQL**，并使用 **Ant Design** 完成前后台界面。
+本仓库是 **SPT（K/S/A 三维）动态测评系统** 的首版工程骨架，当前技术栈为 **React（Vite）+ Express（API）+ Prisma + MySQL**，并使用 **Ant Design** 完成前后台界面。
 
 本文档是“交接 + 续写”的主入口：你可以先按模块读清现状，再按模板新增模块，避免文档越写越散。
 
@@ -39,9 +39,12 @@ npm run dev
 
 ### 5) 最小验证
 
-- 健康检查：`GET /api/health`
-- 后台题库页：`/admin/questions`
-- 测评入口：`/start` → `/test` → `/result/:sessionId` → `/report/:sessionId`
+- 启动后会有两个服务：
+  - Web（Vite）：`http://localhost:5173`
+  - API（Express）：`http://localhost:3000`
+- 健康检查：`GET http://localhost:3000/api/health`
+- 后台题库页：打开 `http://localhost:5173/admin/questions`
+- 测评入口：`http://localhost:5173/start` → `/test` → `/result/:sessionId` → `/report/:sessionId`
 
 ---
 
@@ -71,14 +74,11 @@ npm run dev
 ### 目录映射视图（代码落点）
 
 ```text
-app/
-  api/                      # HTTP API 入口（Next.js Route Handlers）
-  admin/                    # 后台页面（题库、标定等）
-  start/ test/              # 测评入口与答题页
-  result/[sessionId]/       # 免费结果页
-  report/[sessionId]/       # 深度报告页（预览态）
-components/                 # 复用 UI 组件（后台表格、面板等）
-lib/                        # 领域逻辑（题库/测评/报告/配置/Prisma client）
+server/                     # HTTP API 入口（Express）
+src/                        # React 前端（路由页 + 复用组件）
+  pages/                    # 页面路由（start/test/result/report/admin）
+  components/               # 复用 UI 组件（后台表格、面板等）
+lib/                        # 领域逻辑（题库/测评/报告/配置/Prisma client，仅服务端使用）
 prisma/schema.prisma        # 数据模型（MySQL）
 ```
 
@@ -106,15 +106,15 @@ prisma/schema.prisma        # 数据模型（MySQL）
     - 系统会把外部返回的题目 **upsert 回本地数据库**（按 `questionIndex`），以保证 `ResponseRecord.questionId` 外键约束不被破坏
 - **页面与组件**
   - 后台：`/admin/questions`（题库统计 + 列表）
-  - 组件：`components/admin-questions-table.tsx`
+  - 组件：`src/components/AdminQuestionsTable.tsx`
 - **关键规则与边界**
   - 题库不是“自由编辑型问卷”，而是版本化、可标定的动态系统输入源
   - `questionIndex` 与总题量/比例绑定，改动等同于“新版本题库”
 
 关键入口文件：
 - `lib/question-bank.ts`
-- `app/api/admin/questions/import/route.ts`
-- `app/admin/questions/page.tsx`
+- `server/index.ts`（`/api/admin/questions/import`、`/api/admin/questions`）
+- `src/pages/admin/AdminQuestionsPage.tsx`
 
 ---
 
@@ -138,9 +138,8 @@ prisma/schema.prisma        # 数据模型（MySQL）
 
 关键入口文件：
 - `lib/session-service.ts`
-- `app/api/assessment/session/route.ts`
-- `app/api/assessment/[sessionId]/progress/route.ts`
-- `app/test/page.tsx`
+- `server/index.ts`（`/api/assessment/session`、`/api/assessment/:sessionId/progress`）
+- `src/pages/TestPage.tsx`
 
 ---
 
@@ -165,7 +164,7 @@ prisma/schema.prisma        # 数据模型（MySQL）
 
 关键入口文件：
 - `lib/measurement.ts`
-- `app/api/assessment/answer/route.ts`
+- `server/index.ts`（`/api/assessment/answer`）
 
 ---
 
@@ -189,10 +188,9 @@ prisma/schema.prisma        # 数据模型（MySQL）
 
 关键入口文件：
 - `lib/report.ts`
-- `app/api/result/[sessionId]/route.ts`
-- `app/api/report/[sessionId]/route.ts`
-- `app/result/[sessionId]/page.tsx`
-- `app/report/[sessionId]/page.tsx`
+- `server/index.ts`（`/api/result/:sessionId`、`/api/report/:sessionId`）
+- `src/pages/ResultPage.tsx`
+- `src/pages/ReportPage.tsx`
 
 ---
 
@@ -208,16 +206,15 @@ prisma/schema.prisma        # 数据模型（MySQL）
   - `POST /api/admin/calibration/simulate`：生成一条 Synthetic Persona 演练记录（占位）
 - **页面与组件**
   - `/admin/calibration`：标定后台
-  - 组件：`components/admin-calibration-panel.tsx`
+  - 组件：`src/components/AdminCalibrationPanel.tsx`
 - **关键规则与边界**
   - 两段式推进是“方法论”，不是 UI 文案：先系统稳定性诊断，再真人灰度修正参数
   - 后续若接入真实跑批，应将“生成任务/队列/结果归档”单独拆为新模块（见文末模板）
 
 关键入口文件：
-- `app/api/admin/calibration/runs/route.ts`
-- `app/api/admin/calibration/simulate/route.ts`
-- `app/admin/calibration/page.tsx`
-- `components/admin-calibration-panel.tsx`
+- `server/index.ts`（`/api/admin/calibration/runs`、`/api/admin/calibration/simulate`）
+- `src/pages/admin/AdminCalibrationPage.tsx`
+- `src/components/AdminCalibrationPanel.tsx`
 
 ---
 
@@ -231,7 +228,7 @@ prisma/schema.prisma        # 数据模型（MySQL）
   - 只做“连通性”，不承担迁移、修复等副作用操作
 
 关键入口文件：
-- `app/api/health/route.ts`
+- `server/index.ts`（`/api/health`）
 
 ---
 
@@ -284,7 +281,7 @@ prisma/schema.prisma        # 数据模型（MySQL）
 - lib/question-bank.ts
 - lib/measurement.ts
 - lib/report.ts
-- app/api/assessment/answer/route.ts
+- server/index.ts（API 入口，包含 /api/assessment/answer）
 
 当前优先任务：<在这里填写你这次要做的具体目标>
 要求：先直接改代码并自查 lint，再给出变更说明与最小验证方式；说明与文档使用中文。
@@ -314,8 +311,8 @@ prisma/schema.prisma        # 数据模型（MySQL）
   - 新增/修改字段：<字段与含义>
   - 关键约束与索引：<unique / index / enum>
 
-- API（Next.js Route Handlers）
-  - <METHOD> <PATH>：<用途>
+- API（HTTP）
+  - <METHOD> <PATH>：<用途>（当前由 Express 承载，统一在 `server/index.ts`）
     - 请求：<body/query>
     - 响应：<字段>
     - 错误：<常见错误与 status>

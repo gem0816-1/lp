@@ -1,13 +1,13 @@
 import { Question, QuestionOption } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { appConfig } from "@/lib/config";
-import { fetchExternalQuestionSeed } from "@/lib/external-question-bank";
+import { prisma } from "./prisma";
+import { appConfig } from "./config";
+import { fetchExternalQuestionSeed } from "./external-question-bank";
 import {
   DimensionKey,
   DimensionVector,
   QuestionOptionSeed,
   QuestionSeed
-} from "@/lib/types";
+} from "./types";
 
 const VERSION = "spt-v1";
 const TOTALS: Record<DimensionKey, number> = { K: 24, S: 32, A: 24 };

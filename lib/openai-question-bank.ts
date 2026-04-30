@@ -1,5 +1,5 @@
-import type { DimensionKey, QuestionSeed } from "@/lib/types";
-import { questionBankMeta } from "@/lib/question-bank";
+import type { DimensionKey, QuestionSeed } from "./types";
+import { questionBankMeta } from "./question-bank";
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
